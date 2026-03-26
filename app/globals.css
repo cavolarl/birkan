@@ -1,8 +1,25 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --board-bg: #f4f4f5;
+  --board-bg-over: #e4e4e7;
+  --slot-bg: #fafafa;
+  --slot-bg-over: #f0f0f1;
+  --slot-outline: #d4d4d8;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --board-bg: #111111;
+  --board-bg-over: #1a1a1a;
+  --slot-bg: #0c0c0e;
+  --slot-bg-over: #1c1c20;
+  --slot-outline: #52525b;
 }
 
 @theme inline {
@@ -10,13 +27,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
