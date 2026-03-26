@@ -33,11 +33,17 @@ interface Props {
 const TerminalSlot = forwardRef<SlotHandle, Props>(
   ({ slot, projects, lastNote, onReset, onRename, onStatusChange }, ref) => {
     const xtermRef = useRef<XTermHandle>(null)
+    const [started, setStarted] = useState(false)
+    const [cloneUrl, setCloneUrl] = useState('')
     const [isRenaming, setIsRenaming] = useState(false)
     const [labelInput, setLabelInput] = useState(slot.label)
 
     useImperativeHandle(ref, () => ({
-      sendPrompt: (text: string, images?: string[]) => xtermRef.current?.sendPrompt(text, images),
+      sendPrompt: (text: string, images?: string[]) => {
+        setStarted(true)
+        // Small delay to let XTermTerminal mount and connect before sending
+        setTimeout(() => xtermRef.current?.sendPrompt(text, images), 800)
+      },
     }))
 
     const { setNodeRef, isOver } = useDroppable({
@@ -55,6 +61,7 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
     }
 
     function handleReset() {
+      if (!started) { setStarted(true); return }
       xtermRef.current?.sendReset()
       onReset(slot.id)
     }
@@ -116,20 +123,56 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
 
           <button
             onClick={handleReset}
-            title="Reset to new session"
+            title={started ? 'Reset to new session' : 'Start session'}
             className="text-[10px] text-zinc-500 dark:text-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded px-1.5 py-0.5 flex-shrink-0 transition-colors ml-auto"
           >
-            ↺ New
+            {started ? '↺ New' : '▶ Start'}
           </button>
         </div>
 
         {/* Terminal */}
         <div className="flex-1 min-h-0 p-1 overflow-hidden">
-          <XTermTerminal
-            ref={xtermRef}
-            wsUrl={`ws://localhost:3001?slot=${slot.id}`}
-            onStatusChange={(status) => onStatusChange(slot.id, status)}
-          />
+          {started ? (
+            <XTermTerminal
+              ref={xtermRef}
+              wsUrl={`ws://localhost:3001?slot=${slot.id}`}
+              onStatusChange={(status) => onStatusChange(slot.id, status)}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3 px-4">
+              <button
+                onClick={() => setStarted(true)}
+                className="text-xs px-3 py-1.5 rounded border border-dashed border-zinc-600 text-zinc-600 hover:text-zinc-300 hover:border-zinc-400 transition-colors"
+              >
+                Start session
+              </button>
+              <div className="flex w-full max-w-xs gap-1">
+                <input
+                  type="text"
+                  placeholder="https://github.com/user/repo"
+                  value={cloneUrl}
+                  onChange={e => setCloneUrl(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && cloneUrl.trim()) {
+                      setStarted(true)
+                      setTimeout(() => xtermRef.current?.sendPrompt(`git clone ${cloneUrl.trim()} .\r`), 800)
+                    }
+                  }}
+                  className="flex-1 text-xs bg-transparent border border-zinc-700 rounded px-2 py-1 text-zinc-400 placeholder-zinc-700 focus:outline-none focus:border-zinc-500"
+                />
+                <button
+                  onClick={() => {
+                    if (!cloneUrl.trim()) return
+                    setStarted(true)
+                    setTimeout(() => xtermRef.current?.sendPrompt(`git clone ${cloneUrl.trim()} .\r`), 800)
+                  }}
+                  className="text-xs px-2 py-1 rounded border border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-colors"
+                >
+                  Clone
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Drop overlay */}

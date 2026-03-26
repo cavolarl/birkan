@@ -36,6 +36,9 @@ export default function Home() {
   // Active project filter
   const [filterProjectId, setFilterProjectId] = useState<string | undefined>(undefined)
 
+  // Number of terminal slots currently open (starts at 1, max NUM_SLOTS)
+  const [openSlotCount, setOpenSlotCount] = useState(1)
+
   // Drag state
   const [activeNote, setActiveNote] = useState<Note | null>(null)
 
@@ -100,6 +103,14 @@ export default function Home() {
 
   const inProgressNotes = store.notes.filter(n => n.status === 'in-progress')
   const doneCount = store.notes.filter(n => n.status === 'done').length
+
+  if (!store.loaded) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <span className="text-sm text-zinc-500 animate-pulse">Loading…</span>
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden">
@@ -201,12 +212,12 @@ export default function Home() {
             />
           </div>
 
-          {/* Right: 3 terminal slots (25%) */}
+          {/* Right: terminal slots (25%) */}
           <div
             className="flex flex-col border-l border-zinc-200 dark:border-zinc-800 flex-shrink-0"
-            style={{ flex: '1 1 0%', minWidth: 280, maxWidth: 420 }}
+            style={{ flex: '1 1 0%', minWidth: 340, maxWidth: 520 }}
           >
-            {store.slots.map((slot, i) => (
+            {store.slots.slice(0, openSlotCount).map((slot, i) => (
               <TerminalSlot
                 key={slot.id}
                 ref={(el) => { slotRefs.current[i] = el }}
@@ -218,6 +229,16 @@ export default function Home() {
                 onStatusChange={store.updateSlotStatus}
               />
             ))}
+            {openSlotCount < store.slots.length && (
+              <div className="flex items-center justify-center p-3 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                  onClick={() => setOpenSlotCount(c => c + 1)}
+                  className="text-xs px-3 py-1.5 rounded border border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
+                >
+                  + Terminal
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Drag overlay */}

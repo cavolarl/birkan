@@ -58,6 +58,7 @@ const XTermTerminal = forwardRef<XTermHandle, Props>(({ wsUrl, onStatusChange },
       lineHeight: 1.4,
       cursorBlink: true,
       scrollback: 5000,
+      copyOnSelect: true,
     })
 
     const fit = new FitAddon()
