@@ -137,7 +137,7 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
           {started ? (
             <XTermTerminal
               ref={xtermRef}
-              wsUrl={`ws://localhost:3001?slot=${slot.id}`}
+              wsUrl={`ws://localhost:3001?slot=${slot.id}${projectCwd ? `&cwd=${encodeURIComponent(projectCwd)}` : ''}`}
               cwd={projectCwd}
               onStatusChange={(status) => onStatusChange(slot.id, status)}
             />

@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import * as pty from 'node-pty'
+import { spawnSync } from 'child_process'
 import { IncomingMessage } from 'http'
 import * as path from 'path'
 import * as os from 'os'
@@ -49,6 +50,26 @@ function findClaudeBin(): string {
     if (fs.existsSync(c)) return c
   }
   return 'claude'
+}
+
+function gitPull(cwd: string): { pulled: boolean; output: string } {
+  // Only attempt if this is a git repo with at least one remote
+  const isGit = fs.existsSync(path.join(cwd, '.git'))
+  if (!isGit) return { pulled: false, output: '' }
+
+  const remotes = spawnSync('git', ['remote'], { cwd, encoding: 'utf8' })
+  if (!remotes.stdout?.trim()) return { pulled: false, output: '' }
+
+  const result = spawnSync('git', ['pull', '--ff-only'], {
+    cwd,
+    encoding: 'utf8',
+    timeout: 30_000,
+    env: { ...process.env, ...augmentedEnv },
+  })
+  return {
+    pulled: result.status === 0,
+    output: (result.stdout ?? '') + (result.stderr ?? ''),
+  }
 }
 
 function saveImages(dataUrls: string[], dir?: string): string[] {
@@ -113,6 +134,15 @@ function spawnSession(slotId: number, _extraImagePaths: string[] = [], cols = 12
     data: `\x1b[2m[cwd: ${workspace.replace(os.homedir(), '~')}]\x1b[0m\r\n`,
   })
 
+  // Auto-pull latest changes if this is a git repo with a remote
+  const pull = gitPull(workspace)
+  if (pull.pulled) {
+    broadcast(slot, {
+      type: 'output',
+      data: `\x1b[2m[git pull: ${pull.output.trim().split('\n')[0]}]\x1b[0m\r\n`,
+    })
+  }
+
   console.log(`\x1b[2m[slot ${slotId}] spawn: ${claudeBin} ${spawnArgs.join(' ')} (cwd: ${workspace})\x1b[0m`)
 
   const p = pty.spawn(claudeBin, spawnArgs, {
@@ -153,6 +183,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   const slotId = parseInt(url.searchParams.get('slot') ?? '0', 10)
   const cols = parseInt(url.searchParams.get('cols') ?? '120', 10)
   const rows = parseInt(url.searchParams.get('rows') ?? '30', 10)
+  const cwd = url.searchParams.get('cwd') ?? undefined
 
   if (isNaN(slotId) || slotId < 0 || slotId >= NUM_SLOTS) {
     ws.close(1008, 'Invalid slot')
@@ -164,7 +195,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   console.log(`\x1b[32m[slot ${slotId}] client connected (total=${slot.clients.size}) ${cols}x${rows}\x1b[0m`)
 
   // Lazy-spawn: start session on first connection to this slot
-  if (!slot.pty) spawnSession(slotId, [], cols, rows)
+  if (!slot.pty) spawnSession(slotId, [], cols, rows, cwd)
 
   // Replay buffered output so the browser sees what it missed
   if (slot.scrollback) {
