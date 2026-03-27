@@ -83,14 +83,14 @@ export function useStore() {
 
   // ── Projects ──────────────────────────────────────────────────────────────
 
-  const addProject = useCallback((name: string, colorId: ColorId): Project => {
-    const project: Project = { id: uid(), name, colorId }
+  const addProject = useCallback((name: string, colorId: ColorId, path?: string): Project => {
+    const project: Project = { id: uid(), name, colorId, ...(path ? { path } : {}) }
     setProjects(p => [...p, project])
     api('POST', '/api/projects', project)
     return project
   }, [])
 
-  const updateProject = useCallback((id: string, updates: Partial<Pick<Project, 'name' | 'colorId'>>) => {
+  const updateProject = useCallback((id: string, updates: Partial<Pick<Project, 'name' | 'colorId' | 'path'>>) => {
     setProjects(p => p.map(proj => proj.id === id ? { ...proj, ...updates } : proj))
     api('PATCH', `/api/projects/${id}`, updates)
   }, [])

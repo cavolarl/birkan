@@ -3,28 +3,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
+  --background: #a8ddd4;
   --foreground: #171717;
-  --board-bg: #f4f4f5;
-  --board-bg-over: #e4e4e7;
-  --slot-bg: #fafafa;
-  --slot-bg-over: #f0f0f1;
-  --slot-outline: #d4d4d8;
+  --board-bg: #f0faf8;
+  --board-bg-over: #d9f0eb;
+  --slot-bg: #ffffff;
+  --slot-bg-over: #e8f6f3;
+  --slot-outline: #a8ddd4;
+  --accent: #72c9b8;
+  --accent-hover: #5ab8a6;
+  --accent-light: #e0f5f1;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --board-bg: #111111;
-  --board-bg-over: #1a1a1a;
-  --slot-bg: #0c0c0e;
-  --slot-bg-over: #1c1c20;
-  --slot-outline: #52525b;
+  --background: #0a0f0e;
+  --foreground: #e8f6f3;
+  --board-bg: #0d1a18;
+  --board-bg-over: #162724;
+  --slot-bg: #0c1917;
+  --slot-bg-over: #172825;
+  --slot-outline: #2a4f49;
+  --accent: #72c9b8;
+  --accent-hover: #5ab8a6;
+  --accent-light: #1a3530;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

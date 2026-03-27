@@ -5,18 +5,19 @@ import { Project, PROJECT_COLORS, ColorId } from '../types'
 
 interface Props {
   project?: Project | null
-  onSave: (name: string, colorId: ColorId) => void
+  onSave: (name: string, colorId: ColorId, path?: string) => void
   onClose: () => void
 }
 
 export default function ProjectModal({ project, onSave, onClose }: Props) {
   const [name, setName] = useState(project?.name ?? '')
   const [colorId, setColorId] = useState<ColorId>(project?.colorId ?? 'yellow')
+  const [path, setPath] = useState(project?.path ?? '')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    onSave(name.trim(), colorId)
+    onSave(name.trim(), colorId, path.trim() || undefined)
     onClose()
   }
 
@@ -34,6 +35,16 @@ export default function ProjectModal({ project, onSave, onClose }: Props) {
               placeholder="Project name"
               className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
             />
+          </div>
+          <div>
+            <label className="text-xs text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-1 block">Working Directory</label>
+            <input
+              value={path}
+              onChange={e => setPath(e.target.value)}
+              placeholder="/Users/you/my-project"
+              className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 font-mono"
+            />
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mt-1">Terminals assigned to this project will cd here on start</p>
           </div>
           <div>
             <label className="text-xs text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-2 block">Color</label>

@@ -38,6 +38,8 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
     const [isRenaming, setIsRenaming] = useState(false)
     const [labelInput, setLabelInput] = useState(slot.label)
 
+    const projectCwd = projects.find(p => p.id === slot.projectId)?.path
+
     useImperativeHandle(ref, () => ({
       sendPrompt: (text: string, images?: string[]) => {
         setStarted(true)
@@ -62,7 +64,7 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
 
     function handleReset() {
       if (!started) { setStarted(true); return }
-      xtermRef.current?.sendReset()
+      xtermRef.current?.sendReset(projectCwd)
       onReset(slot.id)
     }
 
@@ -136,6 +138,7 @@ const TerminalSlot = forwardRef<SlotHandle, Props>(
             <XTermTerminal
               ref={xtermRef}
               wsUrl={`ws://localhost:3001?slot=${slot.id}`}
+              cwd={projectCwd}
               onStatusChange={(status) => onStatusChange(slot.id, status)}
             />
           ) : (

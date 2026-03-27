@@ -106,17 +106,17 @@ export default function Home() {
 
   if (!store.loaded) {
     return (
-      <div className="h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+      <div className="h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
         <span className="text-sm text-zinc-500 animate-pulse">Loading…</span>
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
       {/* Top bar */}
       <header className="flex items-center gap-3 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex-shrink-0">
-        <span className="text-sm font-bold tracking-tight text-zinc-800 dark:text-zinc-200">birkan</span>
+        <span className="font-serif font-bold tracking-tight text-zinc-800 dark:text-zinc-200" style={{ fontSize: '1rem', letterSpacing: '-0.01em' }}>birkan</span>
 
         {/* Project filter tabs */}
         <div className="flex gap-1 ml-2">
@@ -156,7 +156,10 @@ export default function Home() {
           )}
           <button
             onClick={() => setAssistantOpen(true)}
-            className="text-xs px-2.5 py-1.5 rounded border border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-400 dark:hover:border-violet-600 transition-colors font-medium"
+            className="text-xs px-2.5 py-1.5 rounded border font-medium transition-colors"
+            style={{ borderColor: 'var(--accent)', color: 'var(--accent-hover)', backgroundColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent-light)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             ✦ Setup
           </button>
@@ -184,7 +187,10 @@ export default function Home() {
           <button
             onClick={() => setNoteModal({ open: true, projectId: filterProjectId })}
             disabled={store.projects.length === 0}
-            className="text-xs px-3 py-1.5 rounded bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 font-medium hover:bg-zinc-700 dark:hover:bg-white disabled:opacity-40 transition-colors"
+            className="text-xs px-3 py-1.5 rounded font-medium disabled:opacity-40 transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
           >
             + Note
           </button>
@@ -277,7 +283,7 @@ export default function Home() {
       )}
       {projectModal.open && (
         <ProjectModal
-          onSave={(name, colorId) => store.addProject(name, colorId)}
+          onSave={(name, colorId, path) => store.addProject(name, colorId, path)}
           onClose={() => setProjectModal({ open: false })}
         />
       )}

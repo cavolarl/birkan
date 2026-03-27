@@ -13,6 +13,7 @@ export type Project = {
   id: string
   name: string
   colorId: ColorId
+  path?: string
 }
 
 export type NoteStatus = 'idle' | 'in-progress' | 'done'

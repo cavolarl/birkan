@@ -2,7 +2,7 @@ import { getDb } from '../db'
 
 export async function GET() {
   const db = getDb()
-  const projects = db.prepare('SELECT id, name, color_id as colorId FROM projects ORDER BY rowid').all()
+  const projects = db.prepare('SELECT id, name, color_id as colorId, path FROM projects ORDER BY rowid').all()
   const notes = db.prepare(`
     SELECT id, project_id as projectId, title, body, images,
            status, position_x as posX, position_y as posY,

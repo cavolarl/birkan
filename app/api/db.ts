@@ -24,7 +24,8 @@ function migrate(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS projects (
       id        TEXT PRIMARY KEY,
       name      TEXT NOT NULL,
-      color_id  TEXT NOT NULL
+      color_id  TEXT NOT NULL,
+      path      TEXT
     );
 
     CREATE TABLE IF NOT EXISTS notes (
@@ -48,6 +49,12 @@ function migrate(db: Database.Database) {
       last_note_id TEXT REFERENCES notes(id) ON DELETE SET NULL
     );
   `)
+
+  // Add path column to projects if it doesn't exist (migration for existing DBs)
+  const cols = db.prepare("PRAGMA table_info(projects)").all() as { name: string }[]
+  if (!cols.some(c => c.name === 'path')) {
+    db.exec('ALTER TABLE projects ADD COLUMN path TEXT')
+  }
 
   // Seed default slots if the table is empty
   const { c } = db.prepare('SELECT COUNT(*) as c FROM slots').get() as { c: number }

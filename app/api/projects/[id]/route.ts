@@ -6,6 +6,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const db = getDb()
   if (body.name !== undefined) db.prepare('UPDATE projects SET name = ? WHERE id = ?').run(body.name, id)
   if (body.colorId !== undefined) db.prepare('UPDATE projects SET color_id = ? WHERE id = ?').run(body.colorId, id)
+  if (body.path !== undefined) db.prepare('UPDATE projects SET path = ? WHERE id = ?').run(body.path || null, id)
   return Response.json({ ok: true })
 }
 

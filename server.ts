@@ -28,6 +28,15 @@ const augmentedEnv: Record<string, string> = {
 function ensureWorkspace(slotId: number): string {
   const dir = path.join(WORKSPACES_ROOT, `slot-${slotId}`)
   fs.mkdirSync(dir, { recursive: true })
+
+  // Write workspace-scoped settings that sandbox Claude to this directory
+  const settingsDir = path.join(dir, '.claude')
+  fs.mkdirSync(settingsDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(settingsDir, 'settings.json'),
+    JSON.stringify({ sandbox: { enabled: true } }, null, 2)
+  )
+
   return dir
 }
 
@@ -84,7 +93,7 @@ function broadcast(slot: Slot, msg: unknown) {
   })
 }
 
-function spawnSession(slotId: number, extraImagePaths: string[] = []) {
+function spawnSession(slotId: number, _extraImagePaths: string[] = [], cols = 120, rows = 30, cwd?: string) {
   const slot = slots[slotId]
 
   if (slot.pty) {
@@ -95,24 +104,21 @@ function spawnSession(slotId: number, extraImagePaths: string[] = []) {
   slot.scrollback = ''
   broadcast(slot, { type: 'output', data: '\r\n\x1b[2m[Starting session...]\x1b[0m\r\n' })
 
-  const workspace = ensureWorkspace(slotId)
+  const workspace = (cwd && fs.existsSync(cwd)) ? cwd : ensureWorkspace(slotId)
   const claudeBin = findClaudeBin()
-  const spawnArgs = [
-    '--dangerously-skip-permissions',
-    ...extraImagePaths.flatMap(p => ['--image', p]),
-  ]
+  const spawnArgs = ['--dangerously-skip-permissions']
 
   broadcast(slot, {
     type: 'output',
-    data: `\x1b[2m[workspace: ~/birkan-workspaces/slot-${slotId}]\x1b[0m\r\n`,
+    data: `\x1b[2m[cwd: ${workspace.replace(os.homedir(), '~')}]\x1b[0m\r\n`,
   })
 
-  console.log(`\x1b[2m[slot ${slotId}] spawn: ${claudeBin} ${spawnArgs.join(' ')}\x1b[0m`)
+  console.log(`\x1b[2m[slot ${slotId}] spawn: ${claudeBin} ${spawnArgs.join(' ')} (cwd: ${workspace})\x1b[0m`)
 
   const p = pty.spawn(claudeBin, spawnArgs, {
     name: 'xterm-256color',
-    cols: 120,
-    rows: 30,
+    cols,
+    rows,
     cwd: workspace,
     env: augmentedEnv,
   })
@@ -145,6 +151,8 @@ const wss = new WebSocketServer({ port: PORT })
 wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`)
   const slotId = parseInt(url.searchParams.get('slot') ?? '0', 10)
+  const cols = parseInt(url.searchParams.get('cols') ?? '120', 10)
+  const rows = parseInt(url.searchParams.get('rows') ?? '30', 10)
 
   if (isNaN(slotId) || slotId < 0 || slotId >= NUM_SLOTS) {
     ws.close(1008, 'Invalid slot')
@@ -153,10 +161,10 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
 
   const slot = slots[slotId]
   slot.clients.add(ws)
-  console.log(`\x1b[32m[slot ${slotId}] client connected (total=${slot.clients.size})\x1b[0m`)
+  console.log(`\x1b[32m[slot ${slotId}] client connected (total=${slot.clients.size}) ${cols}x${rows}\x1b[0m`)
 
   // Lazy-spawn: start session on first connection to this slot
-  if (!slot.pty) spawnSession(slotId)
+  if (!slot.pty) spawnSession(slotId, [], cols, rows)
 
   // Replay buffered output so the browser sees what it missed
   if (slot.scrollback) {
@@ -164,7 +172,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   }
 
   ws.on('message', (raw: Buffer) => {
-    let msg: { type: string; data?: string; text?: string; images?: string[]; cols?: number; rows?: number }
+    let msg: { type: string; data?: string; text?: string; images?: string[]; cols?: number; rows?: number; cwd?: string }
     try { msg = JSON.parse(raw.toString()) } catch { return }
 
     switch (msg.type) {
@@ -177,15 +185,18 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
         break
 
       case 'reset':
-        spawnSession(slotId)
+        spawnSession(slotId, [], cols, rows, msg.cwd)
         break
 
       case 'spawn_with_prompt': {
-        const workspace = ensureWorkspace(slotId)
+        const workspace = msg.cwd && fs.existsSync(msg.cwd) ? msg.cwd : ensureWorkspace(slotId)
         const imagePaths = msg.images?.length ? saveImages(msg.images, workspace) : []
-        const p = spawnSession(slotId, imagePaths)
-        if (msg.text) {
-          setTimeout(() => p.write(msg.text! + '\r'), 500)
+        const p = spawnSession(slotId, [], cols, rows, msg.cwd)
+        if (msg.text || imagePaths.length) {
+          const imageNote = imagePaths.length
+            ? `[Image files attached: ${imagePaths.join(', ')}]\n\n`
+            : ''
+          setTimeout(() => p.write(imageNote + (msg.text ?? '') + '\r'), 500)
         }
         break
       }

@@ -7,16 +7,17 @@ import '@xterm/xterm/css/xterm.css'
 
 export interface XTermHandle {
   sendPrompt: (text: string, images?: string[]) => void
-  sendReset: () => void
+  sendReset: (cwd?: string) => void
   clear: () => void
 }
 
 interface Props {
   wsUrl: string
+  cwd?: string
   onStatusChange?: (status: 'idle' | 'working' | 'error') => void
 }
 
-const XTermTerminal = forwardRef<XTermHandle, Props>(({ wsUrl, onStatusChange }, ref) => {
+const XTermTerminal = forwardRef<XTermHandle, Props>(({ wsUrl, cwd, onStatusChange }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
@@ -26,15 +27,15 @@ const XTermTerminal = forwardRef<XTermHandle, Props>(({ wsUrl, onStatusChange },
       const ws = wsRef.current
       if (!ws || ws.readyState !== WebSocket.OPEN) return
       if (images && images.length > 0) {
-        ws.send(JSON.stringify({ type: 'spawn_with_prompt', text, images }))
+        ws.send(JSON.stringify({ type: 'spawn_with_prompt', text, images, cwd }))
       } else {
         ws.send(JSON.stringify({ type: 'input', data: text + '\r' }))
       }
     },
-    sendReset: () => {
+    sendReset: (overrideCwd?: string) => {
       const ws = wsRef.current
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'reset' }))
+        ws.send(JSON.stringify({ type: 'reset', cwd: overrideCwd ?? cwd }))
       }
     },
     clear: () => termRef.current?.clear(),
@@ -75,13 +76,20 @@ const XTermTerminal = forwardRef<XTermHandle, Props>(({ wsUrl, onStatusChange },
 
     function connect() {
       if (!alive) return
-      const ws = new WebSocket(wsUrl)
+      // Include current terminal dimensions in the URL so the server can
+      // spawn the PTY at the correct size from the start
+      fit.fit()
+      const dims = fit.proposeDimensions()
+      const url = dims
+        ? `${wsUrl}&cols=${dims.cols}&rows=${dims.rows}`
+        : wsUrl
+      const ws = new WebSocket(url)
       wsRef.current = ws
 
       ws.onopen = () => {
         onStatusChange?.('idle')
-        const dims = fit.proposeDimensions()
-        if (dims) ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }))
+        const d = fit.proposeDimensions()
+        if (d) ws.send(JSON.stringify({ type: 'resize', cols: d.cols, rows: d.rows }))
       }
 
       ws.onmessage = (event) => {
