@@ -79,7 +79,17 @@ export default function Home() {
       store.moveNoteToSlot(note.id, slotId)
 
       // Send note content as prompt to that terminal
-      const prompt = [note.title, note.body].filter(Boolean).join('\n\n')
+      const linkedContext = (note.linkedNoteIds ?? [])
+        .map(id => store.notes.find(n => n.id === id))
+        .filter(Boolean)
+        .map(n => `Related: "${n!.title}"${n!.body ? `\n${n!.body}` : ''}`)
+        .join('\n\n')
+      const prompt = [
+        note.title,
+        note.body,
+        linkedContext,
+        'When you are done, stage all changes with git add, commit with a descriptive message, and push to the remote.',
+      ].filter(Boolean).join('\n\n')
       slotRefs.current[slotId]?.sendPrompt(prompt, note.images)
     }
   }
@@ -275,9 +285,12 @@ export default function Home() {
       {noteModal.open && (
         <NoteModal
           note={noteModal.note}
+          notes={store.notes}
           projects={store.projects}
           defaultProjectId={noteModal.projectId}
           onSave={handleSaveNote}
+          onAddLink={store.addNoteLink}
+          onRemoveLink={store.removeNoteLink}
           onClose={() => setNoteModal({ open: false })}
         />
       )}

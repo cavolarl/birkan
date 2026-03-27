@@ -41,6 +41,12 @@ function migrate(db: Database.Database) {
       created_at       INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS note_links (
+      note_id        TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      linked_note_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+      PRIMARY KEY (note_id, linked_note_id)
+    );
+
     CREATE TABLE IF NOT EXISTS slots (
       id           INTEGER PRIMARY KEY,
       label        TEXT NOT NULL,

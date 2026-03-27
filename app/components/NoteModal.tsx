@@ -5,19 +5,29 @@ import { Note, Project, PROJECT_COLORS } from '../types'
 
 interface Props {
   note?: Note | null
+  notes: Note[]
   projects: Project[]
   defaultProjectId?: string
   onSave: (projectId: string, title: string, body: string, images: string[]) => void
+  onAddLink: (noteId: string, linkedNoteId: string) => void
+  onRemoveLink: (noteId: string, linkedNoteId: string) => void
   onClose: () => void
 }
 
-export default function NoteModal({ note, projects, defaultProjectId, onSave, onClose }: Props) {
+export default function NoteModal({ note, notes, projects, defaultProjectId, onSave, onAddLink, onRemoveLink, onClose }: Props) {
   const [projectId, setProjectId] = useState(note?.projectId ?? defaultProjectId ?? projects[0]?.id ?? '')
   const [title, setTitle] = useState(note?.title ?? '')
   const [body, setBody] = useState(note?.body ?? '')
   const [images, setImages] = useState<string[]>(note?.images ?? [])
   const [isDragOver, setIsDragOver] = useState(false)
+  const [linkSearch, setLinkSearch] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const currentLinkedIds = note?.linkedNoteIds ?? []
+  const linkableNotes = notes.filter(n => n.id !== note?.id && !currentLinkedIds.includes(n.id))
+  const filteredLinkable = linkSearch.trim()
+    ? linkableNotes.filter(n => n.title.toLowerCase().includes(linkSearch.toLowerCase()))
+    : []
 
   useEffect(() => {
     if (!projectId && projects.length > 0) setProjectId(projects[0].id)
@@ -185,6 +195,53 @@ export default function NoteModal({ note, projects, defaultProjectId, onSave, on
               </p>
             )}
           </div>
+
+          {/* Linked notes section — only shown when editing an existing note */}
+          {note && (
+            <div>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-1 block">Linked Notes</label>
+              {currentLinkedIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {currentLinkedIds.map(id => {
+                    const linked = notes.find(n => n.id === id)
+                    if (!linked) return null
+                    return (
+                      <span key={id} className="flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded text-xs text-zinc-700 dark:text-zinc-300">
+                        {linked.title}
+                        <button
+                          type="button"
+                          onClick={() => onRemoveLink(note.id, id)}
+                          className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 leading-none"
+                        >✕</button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              <div className="relative">
+                <input
+                  value={linkSearch}
+                  onChange={e => setLinkSearch(e.target.value)}
+                  placeholder="Search notes to link…"
+                  className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-3 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                />
+                {filteredLinkable.length > 0 && (
+                  <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded shadow-lg max-h-40 overflow-y-auto">
+                    {filteredLinkable.map(n => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => { onAddLink(note.id, n.id); setLinkSearch('') }}
+                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                      >
+                        {n.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 justify-end mt-1">
             <button

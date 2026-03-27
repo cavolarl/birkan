@@ -199,6 +199,28 @@ export function useStore() {
     api('PATCH', `/api/slots/${slotId}`, { label })
   }, [])
 
+  const addNoteLink = useCallback((noteId: string, linkedNoteId: string) => {
+    setNotes(n => n.map(note =>
+      note.id === noteId
+        ? { ...note, linkedNoteIds: [...(note.linkedNoteIds ?? []), linkedNoteId] }
+        : note.id === linkedNoteId
+          ? { ...note, linkedNoteIds: [...(note.linkedNoteIds ?? []), noteId] }
+          : note
+    ))
+    api('POST', `/api/notes/${noteId}/links`, { linkedNoteId })
+  }, [])
+
+  const removeNoteLink = useCallback((noteId: string, linkedNoteId: string) => {
+    setNotes(n => n.map(note =>
+      note.id === noteId
+        ? { ...note, linkedNoteIds: (note.linkedNoteIds ?? []).filter(id => id !== linkedNoteId) }
+        : note.id === linkedNoteId
+          ? { ...note, linkedNoteIds: (note.linkedNoteIds ?? []).filter(id => id !== noteId) }
+          : note
+    ))
+    api('DELETE', `/api/notes/${noteId}/links`, { linkedNoteId })
+  }, [])
+
   return {
     projects,
     notes,
@@ -217,5 +239,7 @@ export function useStore() {
     updateSlotStatus,
     resetSlot,
     renameSlot,
+    addNoteLink,
+    removeNoteLink,
   }
 }

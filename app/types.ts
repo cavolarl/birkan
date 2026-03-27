@@ -24,6 +24,7 @@ export type Note = {
   title: string
   body: string
   images?: string[]
+  linkedNoteIds?: string[]
   status: NoteStatus
   position: { x: number; y: number }
   terminalSlotId?: number
