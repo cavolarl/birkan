@@ -27,7 +27,7 @@ export function useAssistant() {
   const [isLoading, setIsLoading] = useState(false)
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, extra?: { repos?: Array<{ name: string; description: string }> }) => {
       const userMsg: AssistantMessage = { role: 'user', content: text }
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
@@ -41,7 +41,7 @@ export function useAssistant() {
         const res = await fetch('/api/assistant', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, directory, history }),
+          body: JSON.stringify({ message: text, directory, history, ...extra }),
         })
 
         const data = (await res.json()) as { reply: string; suggestions: ProjectSuggestion[] }

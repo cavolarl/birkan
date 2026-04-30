@@ -152,33 +152,47 @@ Rules:
 // ---------- route handler ----------
 export async function POST(request: Request) {
   try {
-    const { message, directory, history } = (await request.json()) as {
+    const { message, directory, history, repos: clientRepos } = (await request.json()) as {
       message: string
       directory: string
       history: Array<{ role: string; content: string }>
+      repos?: Array<{ name: string; description: string }>
     }
 
-    // Scan if message looks like a scan request or it's the first message
     let scanContext = ''
-    const dir = directory || '~'
-    const isScanRequest =
-      history.length === 0 ||
-      /\bscan\b|\bfind\b|\blook\b|\bcheck\b|\bexplore\b/i.test(message)
 
-    if (isScanRequest) {
-      const repos = await scanDirectory(dir)
-      if (repos.length === 0) {
-        scanContext = `\n\n[Scan of "${dir}" found no git repositories.]\n`
-      } else {
-        const repoLines = repos
-          .map(
-            (r) =>
-              `### ${r.name} (${r.dir})\n` +
-              (r.description ? `Description: ${r.description.split('\n')[0]}\n` : '') +
-              (r.commits ? `Recent commits:\n${r.commits}\n` : '')
-          )
-          .join('\n')
-        scanContext = `\n\n[Scanned "${dir}" — found ${repos.length} git repositories:]\n${repoLines}`
+    if (clientRepos && clientRepos.length > 0) {
+      // Client already scanned via folder picker — use that data directly
+      const repoLines = clientRepos
+        .map(
+          (r) =>
+            `### ${r.name}\n` +
+            (r.description ? `Description: ${r.description.split('\n')[0]}\n` : '')
+        )
+        .join('\n')
+      scanContext = `\n\n[User selected a folder — found ${clientRepos.length} git repositories:]\n${repoLines}`
+    } else {
+      // Fall back to server-side path scan
+      const dir = directory || '~'
+      const isScanRequest =
+        history.length === 0 ||
+        /\bscan\b|\bfind\b|\blook\b|\bcheck\b|\bexplore\b/i.test(message)
+
+      if (isScanRequest) {
+        const repos = await scanDirectory(dir)
+        if (repos.length === 0) {
+          scanContext = `\n\n[Scan of "${dir}" found no git repositories.]\n`
+        } else {
+          const repoLines = repos
+            .map(
+              (r) =>
+                `### ${r.name} (${r.dir})\n` +
+                (r.description ? `Description: ${r.description.split('\n')[0]}\n` : '') +
+                (r.commits ? `Recent commits:\n${r.commits}\n` : '')
+            )
+            .join('\n')
+          scanContext = `\n\n[Scanned "${dir}" — found ${repos.length} git repositories:]\n${repoLines}`
+        }
       }
     }
 

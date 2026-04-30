@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Project, PROJECT_COLORS, ColorId } from '../types'
 
 interface Props {
@@ -24,6 +24,21 @@ export default function ProjectModal({ project, onSave, onClose }: Props) {
   const [repoUrl, setRepoUrl] = useState('')
   const [cloning, setCloning] = useState(false)
   const [cloneError, setCloneError] = useState('')
+  const [picking, setPicking] = useState(false)
+
+  async function pickFolder() {
+    setPicking(true)
+    try {
+      const res = await fetch('/api/pick-folder', { method: 'POST' })
+      const data = await res.json() as { path: string | null }
+      if (data.path) {
+        setManualPath(data.path)
+        if (!name) setName(data.path.split('/').pop() ?? '')
+      }
+    } finally {
+      setPicking(false)
+    }
+  }
 
   function handleUrlChange(url: string) {
     setRepoUrl(url)
@@ -128,12 +143,23 @@ export default function ProjectModal({ project, onSave, onClose }: Props) {
           {(mode === 'manual' || project) && (
             <div>
               <label className="text-xs text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-1 block">Working Directory</label>
-              <input
-                value={manualPath}
-                onChange={e => setManualPath(e.target.value)}
-                placeholder="/Users/you/my-project"
-                className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 font-mono"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={manualPath}
+                  onChange={e => setManualPath(e.target.value)}
+                  placeholder="/Users/you/my-project"
+                  className="flex-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 font-mono min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={pickFolder}
+                  disabled={picking || cloning}
+                  title="Pick a folder"
+                  className="px-3 py-2 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 disabled:opacity-40 transition-colors text-sm flex-shrink-0"
+                >
+                  {picking ? '…' : '📂'}
+                </button>
+              </div>
             </div>
           )}
 
